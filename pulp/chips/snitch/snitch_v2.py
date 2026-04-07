@@ -17,6 +17,7 @@
 import gvsoc.runner
 import gvsoc.systree
 from vp.clock_domain import Clock_domain
+from fault_injection.fic import FIC
 import memory.dramsys
 import memory.memory
 from elftools.elf.elffile import *
@@ -113,6 +114,8 @@ class Soc(gvsoc.systree.Component):
         #
         # Components
         #
+
+        fic = FIC(self, 'fic')
 
         # Bootrom
         romfile = 'pulp/snitch/bootrom.bin'
@@ -262,22 +265,22 @@ class SocFlooNoc(gvsoc.systree.Component):
 
         current_bank_base = arch.hbm.base
         for i in range(1, arch.nb_x_tiles+1):
-            bank = memory.memory.Memory(self, f'bank_{i}_0', size=arch.bank_size)
+            bank = memory.memory.Memory(self, f'bank_{i}_0', size=arch.bank_size, fic_enabled=True)
             noc.o_MAP(bank.i_INPUT(), base=current_bank_base, size=arch.bank_size,
                 x=i, y=0)
             current_bank_base += arch.bank_size
         for i in range(1, arch.nb_x_tiles+1):
-            bank = memory.memory.Memory(self, f'bank_{i}_{arch.nb_y_tiles+1}', size=arch.bank_size)
+            bank = memory.memory.Memory(self, f'bank_{i}_{arch.nb_y_tiles+1}', size=arch.bank_size, fic_enabled=True)
             noc.o_MAP(bank.i_INPUT(), base=current_bank_base, size=arch.bank_size,
                 x=i, y=arch.nb_x_tiles+1)
             current_bank_base += arch.bank_size
         for i in range(1, arch.nb_y_tiles+1):
-            bank = memory.memory.Memory(self, f'bank_0_{i}', size=arch.bank_size)
+            bank = memory.memory.Memory(self, f'bank_0_{i}', size=arch.bank_size, fic_enabled=True)
             noc.o_MAP(bank.i_INPUT(), base=current_bank_base, size=arch.bank_size,
                 x=0, y=i)
             current_bank_base += arch.bank_size
         for i in range(1, arch.nb_y_tiles):
-            bank = memory.memory.Memory(self, f'bank_{arch.nb_x_tiles+1}_{i}', size=arch.bank_size)
+            bank = memory.memory.Memory(self, f'bank_{arch.nb_x_tiles+1}_{i}', size=arch.bank_size, fic_enabled=True)
             noc.o_MAP(bank.i_INPUT(), base=current_bank_base, size=arch.bank_size,
                 x=arch.nb_x_tiles+1, y=i)
             current_bank_base += arch.bank_size
