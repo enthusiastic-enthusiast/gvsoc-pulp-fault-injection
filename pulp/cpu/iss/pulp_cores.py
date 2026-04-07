@@ -66,13 +66,15 @@ _fc_isa = None
 class PulpCore(cpu.iss.riscv.RiscvCommon):
 
     def __init__(self, parent, name, isa, cluster_id: int, core_id: int, fetch_enable: bool=False,
-            boot_addr: int=0, external_pccr: bool=False):
+                boot_addr: int=0, external_pccr: bool=False, prefetcher_fi: bool=False, 
+                regfile_fi: bool=False):
 
         super().__init__(parent, name, isa=isa,
             riscv_dbg_unit=True, fetch_enable=fetch_enable, boot_addr=boot_addr,
             first_external_pcer=12, debug_handler=0x1a190800, misa=0x40000000, core="ri5ky",
             cluster_id=cluster_id, core_id=core_id, wrapper="pulp/cpu/iss/pulp_iss_wrapper.cpp",
-            scoreboard=True, timed=True, handle_misaligned=True, external_pccr=external_pccr)
+            scoreboard=True, prefetcher_fi=prefetcher_fi, regfile_fi=regfile_fi, timed=True, 
+            handle_misaligned=True, external_pccr=external_pccr)
 
         self.add_c_flags([
             "-DPIPELINE_STALL_THRESHOLD=1",
@@ -86,14 +88,16 @@ class PulpCore(cpu.iss.riscv.RiscvCommon):
 
 class ClusterCore(PulpCore):
 
-    def __init__(self, parent, name, cluster_id: int=None, core_id: int=None, pulpv2=True, pulpnn=True):
+    def __init__(self, parent, name, cluster_id: int=None, core_id: int=None, pulpv2=True, pulpnn=True, 
+                 prefetcher_fi: bool=False, regfile_fi: bool=False):
 
         global _cluster_isa
 
         if _cluster_isa is None:
             _cluster_isa = _build_cluster_isa('pulp_cluster', pulpv2=pulpv2, pulpnn=pulpnn)
 
-        super().__init__(parent, name, isa=_cluster_isa, cluster_id=cluster_id, core_id=core_id, external_pccr=True)
+        super().__init__(parent, name, isa=_cluster_isa, cluster_id=cluster_id, core_id=core_id, 
+                         external_pccr=True, prefetcher_fi=prefetcher_fi, regfile_fi=regfile_fi)
 
 
 
