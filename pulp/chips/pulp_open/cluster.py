@@ -21,6 +21,7 @@ from pulp.chips.pulp_open.l1_subsystem import L1_subsystem
 from pulp.event_unit.event_unit_v3 import Event_unit
 from interco.router import Router
 from pulp.mchan.mchan_v7 import Mchan
+from fault_injection.fic import FIC
 from pulp.timer.timer_v2 import Timer
 from pulp.cluster.cluster_control_v2 import Cluster_control
 from pulp.ne16.ne16 import Ne16
@@ -68,7 +69,8 @@ class Cluster(st.Component):
 
     """
 
-    def __init__(self, parent, name, config_file, cid: int=0, pulpnn=False):
+    def __init__(self, parent, name, config_file, cid: int=0, pulpnn=False, regfile_fi: bool=False,
+                 prefetcher_fi: bool=False, l1_fi: bool=False):
         super(Cluster, self).__init__(parent, name)
 
         #
@@ -97,18 +99,18 @@ class Cluster(st.Component):
             name='redmule', value=False, cast=bool, description='Enable Redmule'
         )
 
-
         #
         # Components
         #
 
         # L1 subsystem
-        l1 = L1_subsystem(self, 'l1', self, cluster_conf)
+        l1 = L1_subsystem(self, 'l1', self, cluster_conf, fic_enabled=l1_fi)
 
         # Cores
         pes = []
         for i in range(0, nb_pe):
-            pes.append(iss.ClusterCore(self, 'pe%d' % i, cluster_id=cid, core_id=i, pulpnn=pulpnn))
+            pes.append(iss.ClusterCore(self, 'pe%d' % i, cluster_id=cid, core_id=i, pulpnn=pulpnn,
+                                        prefetcher_fi=prefetcher_fi, regfile_fi=regfile_fi))
 
         # Icache
         icache = Hierarchical_cache(self, 'icache', cluster_conf.get_property('icache/config'))

@@ -19,6 +19,7 @@ import gvsoc.systree as st
 import pulp.cpu.iss.pulp_cores as iss
 import memory.memory as memory
 import interco.router as router
+from fault_injection.fic import FIC
 import cache.cache as cache
 import interco.interleaver as interleaver
 from pulp.chips.pulp_open.l2_subsystem import L2Subsystem, L2Attr
@@ -57,13 +58,14 @@ class SocConf(st.Component):
 
 class Soc(st.Component):
 
-    def __init__(self, parent, name, attr: SocAttr, parser, config_file, chip, cluster, pim_support=False, pulpnn=False):
+    def __init__(self, parent, name, attr: SocAttr, parser, config_file, chip, 
+                 cluster, pulpnn=False, l2_fi=False, l2_parity_check=False,
+                 soc_ico_fi=False, axi_fi=False):
         super(Soc, self).__init__(parent, name)
 
         #
         # Properties
         #
-
         soc_conf = SocConf(config_file)
         self.conf = soc_conf
 
@@ -82,6 +84,8 @@ class Soc(st.Component):
         #
         # Components
         #
+
+        fic = FIC(self, 'fic')
 
         # Loader
         binary = None
@@ -122,10 +126,12 @@ class Soc(st.Component):
         apb_ico = router.Router(self, 'apb_ico', latency=8)
 
         # Soc interconnect
-        soc_ico = soc_interco.Soc_interco(self, 'soc_ico', self, cluster)
+        soc_ico = soc_interco.Soc_interco(self, 'soc_ico', self, cluster, fic_connected=soc_ico_fi)
 
         # AXI
-        axi_ico = router.Router(self, 'axi_ico', latency=12)
+        axi_ico = router.Router(self, 'axi_ico', latency=12, fic_connected=axi_fi)
+
+        fic.o_GLOBAL_AS(axi_ico.i_INPUT())
 
         # GPIO
         gpio = gpio_module.Gpio(self, 'gpio', nb_gpio=soc_conf.get_property('peripherals/gpio/nb_gpio'), soc_event=soc_events['soc_evt_gpio'])
@@ -139,7 +145,7 @@ class Soc(st.Component):
             bus_watchpoint = Bus_watchpoint(self, 'bus_watchpoint', fc_tohost)
 
         # L2
-        self.l2 = L2Subsystem(self, 'l2', attr.l2)
+        self.l2 = L2Subsystem(self, 'l2', attr.l2, fic_enabled=l2_fi, parity_check=l2_parity_check)
 
         # SOC EU
         soc_eu = soc_eu_module.Soc_eu(self, 'soc_eu', ref_clock_event=soc_events['soc_evt_ref_clock'], **soc_conf.get_property('peripherals/soc_eu/config'))
@@ -265,11 +271,8 @@ class Soc(st.Component):
         self.bind(soc_ico, 'axi_proxy', axi_ico, 'input')
         self.bind(soc_ico, 'ddr', axi_ico, 'input')
 
-        axi_ico.add_mapping('ddr', base=0x80000000, size=0x40000000, remove_offset=0x80000000)  #TODO Pretty sure addresses above 0xC0000000 are either used or non usable
+        axi_ico.add_mapping('ddr', base=0x80000000, size=0x00100000, remove_offset=0x80000000)
         self.bind(axi_ico, 'ddr', self, 'ddr')
-        if pim_support: 
-            axi_ico.add_mapping('pim_toggle', base=0xC0000000, size=0x00000004, remove_offset=0x80000000)
-            self.bind(axi_ico, 'pim_toggle', self, 'pim_toggle')
 
         self.bind(axi_ico, 'soc', soc_ico, 'axi_slave')
         self.bind(self, 'soc_input', axi_ico, 'input')

@@ -33,7 +33,7 @@ class L1_subsystem(st.Component):
 
     """
 
-    def __init__(self, parent, name, cluster, cluster_conf):
+    def __init__(self, parent, name, cluster, cluster_conf, fic_enabled: bool=False):
         super(L1_subsystem, self).__init__(parent, name)
 
         #
@@ -51,13 +51,14 @@ class L1_subsystem(st.Component):
         #
         # Components
         #
-
+        
         # Memory banks
         l1_banks = []
         for i in range(0, nb_l1_banks):
-            mem = Memory(self, 'bank%d' % i, size=l1_bank_size, power_trigger=True if i == 0 else False)
+            mem = Memory(self, 'bank%d' % i, size=l1_bank_size, power_trigger=True if i == 0 else False, fic_enabled=fic_enabled)
             l1_banks.append(mem)
             mem.add_properties(self.load_property_file(power_models))
+
 
         # Per-PE interconnects
         pe_icos = []

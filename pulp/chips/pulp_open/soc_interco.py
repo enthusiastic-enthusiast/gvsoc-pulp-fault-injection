@@ -19,10 +19,10 @@ import interco.router as router
 
 class Soc_interco(st.Component):
 
-    def __init__(self, parent, name, soc, cluster):
+    def __init__(self, parent, name, soc, cluster, fic_connected=False):
         super(Soc_interco, self).__init__(parent, name)
 
-        ll_ico = router.Router(self, 'll_ico')
+        ll_ico = router.Router(self, 'll_ico', fic_connected=fic_connected)
 
         ll_ico.add_mapping('apb'           , **soc.conf.get_property('peripherals/mapping'))
         ll_ico.add_mapping('rom'           , base=soc.conf.get_property('apb_ico/mappings/rom/base'), size=soc.conf.get_property('apb_ico/mappings/rom/size'))
@@ -35,7 +35,7 @@ class Soc_interco(st.Component):
         self.bind(self, 'debug', ll_ico, 'input')
         self.bind(self, 'axi_slave', ll_ico, 'input')
 
-        hb_ico = router.Router(self, 'hb_ico')
+        hb_ico = router.Router(self, 'hb_ico', fic_connected=fic_connected)
 
         l2_shared_size = soc.conf.get_property('l2/shared/mapping/size', int)
         l2_shared_nb_regions = soc.conf.get_property('l2/shared/nb_regions')

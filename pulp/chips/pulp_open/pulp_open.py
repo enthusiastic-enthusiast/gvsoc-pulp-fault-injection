@@ -22,8 +22,10 @@ from utils.clock_generator import Clock_generator
 from pulp.padframe.padframe_v1 import Padframe
 import interco.router_proxy as router_proxy
 import memory.dramsys
-import memory.pim_component
+from fault_injection.fic import FIC
 from gvrun.attribute import Tree, Area, Value
+
+import math
 
 class PulpOpenAttr(Tree):
     def __init__(self, parent):
@@ -33,10 +35,24 @@ class PulpOpenAttr(Tree):
 
 class Pulp_open(st.Component):
 
-    def __init__(self, parent, name, attr: PulpOpenAttr, parser, soc_config_file='pulp/chips/pulp_open/soc.json',
-            cluster_config_file='pulp/chips/pulp_open/cluster.json', padframe_config_file='pulp/chips/pulp_open/padframe.json',
-            use_ddr=False, pim_support=False, pulpnn=False):
+    def __init__(self, parent, name, attr: PulpOpenAttr, parser, 
+            soc_config_file='pulp/chips/pulp_open/soc.json',
+            cluster_config_file='pulp/chips/pulp_open/cluster.json', 
+            padframe_config_file='pulp/chips/pulp_open/padframe.json',
+            use_ddr=False, pulpnn=False, fic_enabled=False, l1_fi=False, 
+            l2_fi=False, interco_fi=False, l2_parity_check=False, 
+            prefetcher_fi=False, regfile_fi=False, axi_fi=False,
+            soc_ico_fi=False):
         super(Pulp_open, self).__init__(parent, name)
+
+        if fic_enabled:
+            l1_fi = True
+            l2_fi = True
+            interco = True
+            prefetcher_fi = True
+            regfile_fi = True
+            axi_fi=True
+            soc_ico_fi=True
 
         #
         # Properties
@@ -45,7 +61,6 @@ class Pulp_open(st.Component):
         soc_config_file = self.add_property('soc_config_file', soc_config_file)
         cluster_config_file = self.add_property('cluster_config_file', cluster_config_file)
         nb_cluster = self.add_property('nb_cluster', 1)
-
 
         #
         # Components
@@ -67,14 +82,18 @@ class Pulp_open(st.Component):
         clusters = []
         for cid in range(0, nb_cluster):
             cluster_name = get_cluster_name(cid)
-            clusters.append(Cluster(self, cluster_name, config_file=cluster_config_file, cid=cid, pulpnn=pulpnn))
+            clusters.append(Cluster(self, cluster_name, config_file=cluster_config_file, cid=cid, 
+                pulpnn=pulpnn, l1_fi=l1_fi, prefetcher_fi=prefetcher_fi, regfile_fi=regfile_fi))
 
         # Soc
-        soc = Soc(self, 'soc', attr.soc, parser, config_file=soc_config_file, chip=self, cluster=clusters[0], pim_support=pim_support,pulpnn=pulpnn)
+        soc = Soc(self, 'soc', attr.soc, parser, config_file=soc_config_file, chip=self, 
+            cluster=clusters[0], pulpnn=pulpnn, l2_fi=l2_fi, l2_parity_check=l2_parity_check,
+            axi_fi=axi_fi, soc_ico_fi=soc_ico_fi)
 
         # Fast clock
         fast_clock = Clock_domain(self, 'fast_clock', frequency=24576063*2)
-        fast_clock_generator = Clock_generator(self, 'fast_clock_generator', powered_on=False, powerup_time=200000000)
+        fast_clock_generator = Clock_generator(self, 'fast_clock_generator', powered_on=False, 
+            powerup_time=200000000)
 
         # Ref clock
         ref_clock = Clock_domain(self, 'ref_clock', frequency=65536)
@@ -85,9 +104,7 @@ class Pulp_open(st.Component):
 
         # DRAMsys
         if use_ddr:
-            ddr = memory.dramsys.Dramsys(self, 'ddr', pim_support=pim_support)
-            if pim_support:
-                pim_component = memory.pim_component.PimComponent(self, 'pim_component')
+            ddr = memory.dramsys.Dramsys(self, 'ddr')
 
 
         #
@@ -138,8 +155,6 @@ class Pulp_open(st.Component):
         self.bind(soc_clock, 'out', axi_proxy, 'clock')
         if use_ddr:
             self.bind(soc_clock, 'out', ddr, 'clock')
-            if pim_support:
-                self.bind(soc_clock, 'out', pim_component, 'clock')
 
         # Clusters
         for cid in range(0, nb_cluster):
@@ -174,11 +189,7 @@ class Pulp_open(st.Component):
         self.bind(soc, 'axi_proxy', axi_proxy, 'input')
         if use_ddr:
             self.bind(soc, 'ddr', ddr, 'input')
-            if pim_support:
-                self.bind(ddr, 'send_memspec', pim_component, 'rcv_memspec')
-                self.bind(soc, 'pim_toggle', ddr, 'pim_toggle')
-                self.bind(ddr, 'pim_notify', pim_component, 'pim_notify')
-                self.bind(pim_component, 'pim_data', ddr, 'pim_data')
+
 
     def gen_gtkw_conf(self, tree, traces):
         if tree.get_view() == 'overview':

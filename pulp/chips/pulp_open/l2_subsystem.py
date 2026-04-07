@@ -40,18 +40,20 @@ class L2Attr(Tree):
 
 class L2Subsystem(st.Component):
 
-    def __init__(self, parent, name, attr):
+    def __init__(self, parent, name, attr, fic_enabled: bool=False, parity_check: bool=False):
         super(L2Subsystem, self).__init__(parent, name)
 
-        l2_priv0 = memory.Memory(self, 'priv0', size=attr.priv0.size, power_trigger=True)
-        l2_priv1 = memory.Memory(self, 'priv1', size=attr.priv1.size)
+        l2_priv0 = memory.Memory(self, 'priv0', size=attr.priv0.size, power_trigger=True, 
+                                 fic_enabled=fic_enabled, parity_check=parity_check)
+        l2_priv1 = memory.Memory(self, 'priv1', size=attr.priv1.size, 
+                                 fic_enabled=fic_enabled, parity_check=parity_check)
 
         l2_shared_size = attr.shared.range.size
 
         l2_shared_nb_banks = attr.shared.nb_banks
         l2_shared_nb_regions = attr.shared.nb_regions
         cut_size = int(l2_shared_size / l2_shared_nb_regions / l2_shared_nb_banks)
-
+        
         for i in range(0, l2_shared_nb_regions):
 
             l2_shared_interleaver = interleaver.Interleaver(self, 'l2_shared_%d' % i, nb_slaves=l2_shared_nb_banks,
@@ -61,8 +63,8 @@ class L2Subsystem(st.Component):
 
             for j in range(0, l2_shared_nb_banks):
 
-                cut = memory.Memory(self, 'shared_%d_cut_%d' % (i, j), size=cut_size)
-
+                cut = memory.Memory(self, 'shared_%d_cut_%d' % (i, j), size=cut_size, 
+                                    fic_enabled=fic_enabled, parity_check=parity_check)
                 self.bind(l2_shared_interleaver, 'out_%d' % j, cut, 'input')
 
         self.bind(self, 'priv0', l2_priv0, 'input')
