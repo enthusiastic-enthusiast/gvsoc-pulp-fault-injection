@@ -21,7 +21,6 @@ from pulp.chips.pulp_open.l1_subsystem import L1_subsystem
 from pulp.event_unit.event_unit_v3 import Event_unit
 from interco.router import Router
 from pulp.mchan.mchan_v7 import Mchan
-from fault_injection.fic import FIC
 from pulp.timer.timer_v2 import Timer
 from pulp.cluster.cluster_control_v2 import Cluster_control
 from pulp.ne16.ne16 import Ne16

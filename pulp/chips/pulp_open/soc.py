@@ -126,10 +126,10 @@ class Soc(st.Component):
         apb_ico = router.Router(self, 'apb_ico', latency=8)
 
         # Soc interconnect
-        soc_ico = soc_interco.Soc_interco(self, 'soc_ico', self, cluster, fic_connected=soc_ico_fi)
+        soc_ico = soc_interco.Soc_interco(self, 'soc_ico', self, cluster)
 
         # AXI
-        axi_ico = router.Router(self, 'axi_ico', latency=12, fic_connected=axi_fi)
+        axi_ico = router.Router(self, 'axi_ico', latency=12)
 
         fic.o_GLOBAL_AS(axi_ico.i_INPUT())
 

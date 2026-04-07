@@ -22,7 +22,6 @@ from utils.clock_generator import Clock_generator
 from pulp.padframe.padframe_v1 import Padframe
 import interco.router_proxy as router_proxy
 import memory.dramsys
-from fault_injection.fic import FIC
 from gvrun.attribute import Tree, Area, Value
 
 import math
